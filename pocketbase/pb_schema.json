@@ -1,0 +1,205 @@
+{
+  "collections": [
+    {
+      "name": "user_balances",
+      "type": "view",
+      "system": false,
+      "schema": [
+        {
+          "name": "uvBalance",
+          "type": "number"
+        },
+        {
+          "name": "cashBalance",
+          "type": "number"
+        },
+        {
+          "name": "totalDebts",
+          "type": "number"
+        }
+      ],
+      "options": {
+        "query": "SELECT u.id, COALESCE(SUM(CASE WHEN o.type = 'retraitUv' THEN o.amount WHEN o.type = 'approvisionnementUv' THEN o.amount ELSE -o.amount END), 0) as uvBalance, COALESCE(SUM(CASE WHEN o.type = 'retraitUv' THEN -o.amount WHEN o.type = 'approvisionnementEspece' THEN o.amount WHEN o.type = 'approvisionnementUv' THEN 0 WHEN o.isPaid = 1 THEN o.amount ELSE 0 END), 0) as cashBalance, COALESCE((SELECT SUM(c.totalDebt) FROM clients c WHERE c.userId = u.id), 0) as totalDebts FROM users u LEFT JOIN operations o ON o.userId = u.id GROUP BY u.id"
+      },
+      "listRule": "id = @request.auth.id",
+      "viewRule": "id = @request.auth.id"
+    },
+    {
+      "name": "clients",
+      "type": "base",
+      "system": false,
+      "schema": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "options": {
+            "min": 1,
+            "max": 255
+          }
+        },
+        {
+          "name": "phone",
+          "type": "text",
+          "required": true,
+          "options": {
+            "min": 8,
+            "max": 20,
+            "pattern": "^[0-9+\\-\\s()]+$"
+          }
+        },
+        {
+          "name": "totalDebt",
+          "type": "number",
+          "required": true,
+          "options": {
+            "min": 0
+          }
+        },
+        {
+          "name": "userId",
+          "type": "relation",
+          "required": true,
+          "options": {
+            "collectionId": "_pb_users_auth_",
+            "cascadeDelete": false,
+            "minSelect": null,
+            "maxSelect": 1,
+            "displayFields": []
+          }
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_clients_userId ON clients (userId)",
+        "CREATE INDEX idx_clients_created ON clients (created)"
+      ],
+      "listRule": "userId = @request.auth.id",
+      "viewRule": "userId = @request.auth.id",
+      "createRule": "@request.data.userId = @request.auth.id",
+      "updateRule": "userId = @request.auth.id",
+      "deleteRule": "userId = @request.auth.id"
+    },
+    {
+      "name": "operations",
+      "type": "base",
+      "system": false,
+      "schema": [
+        {
+          "name": "clientId",
+          "type": "relation",
+          "required": true,
+          "options": {
+            "collectionId": "clients",
+            "cascadeDelete": true,
+            "minSelect": null,
+            "maxSelect": 1,
+            "displayFields": ["name"]
+          }
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": true,
+          "options": {
+            "maxSelect": 1,
+            "values": [
+              "venteCredit",
+              "transfert",
+              "depotUv",
+              "retraitUv",
+              "approvisionnementUv",
+              "approvisionnementEspece",
+              "paiementClient"
+            ]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "options": {
+            "min": 0
+          }
+        },
+        {
+          "name": "isPaid",
+          "type": "bool",
+          "required": true,
+          "options": {}
+        },
+        {
+          "name": "userId",
+          "type": "relation",
+          "required": true,
+          "options": {
+            "collectionId": "_pb_users_auth_",
+            "cascadeDelete": false,
+            "minSelect": null,
+            "maxSelect": 1,
+            "displayFields": []
+          }
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_operations_userId ON operations (userId)",
+        "CREATE INDEX idx_operations_clientId ON operations (clientId)",
+        "CREATE INDEX idx_operations_created ON operations (created)",
+        "CREATE INDEX idx_operations_type ON operations (type)"
+      ],
+      "listRule": "userId = @request.auth.id",
+      "viewRule": "userId = @request.auth.id",
+      "createRule": "@request.data.userId = @request.auth.id",
+      "updateRule": "userId = @request.auth.id",
+      "deleteRule": "userId = @request.auth.id"
+    },
+    {
+      "name": "payments",
+      "type": "base",
+      "system": false,
+      "schema": [
+        {
+          "name": "clientId",
+          "type": "relation",
+          "required": true,
+          "options": {
+            "collectionId": "clients",
+            "cascadeDelete": true,
+            "minSelect": null,
+            "maxSelect": 1,
+            "displayFields": ["name"]
+          }
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": true,
+          "options": {
+            "min": 0
+          }
+        },
+        {
+          "name": "userId",
+          "type": "relation",
+          "required": true,
+          "options": {
+            "collectionId": "_pb_users_auth_",
+            "cascadeDelete": false,
+            "minSelect": null,
+            "maxSelect": 1,
+            "displayFields": []
+          }
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_payments_userId ON payments (userId)",
+        "CREATE INDEX idx_payments_clientId ON payments (clientId)",
+        "CREATE INDEX idx_payments_created ON payments (created)"
+      ],
+      "listRule": "userId = @request.auth.id",
+      "viewRule": "userId = @request.auth.id",
+      "createRule": "@request.data.userId = @request.auth.id",
+      "updateRule": "userId = @request.auth.id",
+      "deleteRule": "userId = @request.auth.id"
+    }
+  ]
+}
